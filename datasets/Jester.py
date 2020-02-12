@@ -29,7 +29,7 @@ class Jester(DataReader):
     dataset_dir = 'jester'
     data_file = 'ratings.csv'
 
-    def __init__(self, **kwargs):
+    def __init__(self, split=True, **kwargs):
         """
         Constructor
 
@@ -40,7 +40,7 @@ class Jester(DataReader):
         """
 
         super(Jester, self).__init__(delim=',', **kwargs)
-        self.process()
+        self.process(split)
 
     def get_ratings_file(self):
         """
@@ -86,26 +86,9 @@ class Jester(DataReader):
             writer = csv.writer(f, delimiter=self.delimiter)
             writer.writerows(zip(*d.values()))
 
-    def read_interactions(self, file, use_cols, delimiter, header, verbose):
+    def read_interactions(self, file, use_cols, delimiter, header, duplicate, verbose):
         """Skip reading through the ratings file again"""
         try:
             return self.rows, self.cols, self.data
         except AttributeError:
-            return super(Jester, self).read_interactions(file, use_cols, delimiter, header, verbose)
-
-
-if __name__ == '__main__':
-    reader = Jester(use_local=True, force_rebuild=True, implicit=True, save_local=True, verbose=True,
-                     min_ratings=1, remove_top_pop=0.0)
-    URM = reader.get_URM_full()
-    print(URM.nnz)
-    URM_train = reader.get_URM_train()
-    URM_test = reader.get_URM_test()
-    URM_valid = reader.get_URM_validation()
-    # print(URM_train.nnz)
-    # print(URM_test.nnz)
-    # print(URM_valid.nnz)
-    print(URM_train.shape)
-    print(URM_test.shape)
-    print(URM_valid.shape)
-    # reader.describe()
+            return super(Jester, self).read_interactions(file, use_cols, delimiter, header, duplicate, verbose)

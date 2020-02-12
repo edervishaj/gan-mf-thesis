@@ -19,6 +19,8 @@ class Movielens(DataReader):
     and provides methods to access 3 sparse matrices URM_train, URM_validation and URM_test
     or create cross-validation folds from the full URM.
     """
+    
+    DATASET_NAME = 'Movielens'
 
 
     urls = {
@@ -49,7 +51,7 @@ class Movielens(DataReader):
     }
 
 
-    def __init__(self, version='10M', **kwargs):
+    def __init__(self, version='10M', split=True, **kwargs):
         """
         Constructor
 
@@ -78,7 +80,7 @@ class Movielens(DataReader):
         except AttributeError:
             pass
 
-        self.process()
+        self.process(split)
 
 
     def get_ratings_file(self):
@@ -92,21 +94,7 @@ class Movielens(DataReader):
             zfile = zipfile.ZipFile(zip_file)
             to_extract = self.data_files[self.version]
             self.ratings_file = zfile.extract(to_extract, self.all_datasets_dir)
+            os.remove(zip_file)
         except (FileNotFoundError, zipfile.BadZipFile):
             print('Either file ' + to_extract + ' not found or ' + os.path.split(self.urls[self.version])[-1] + ' is corrupted', file=sys.stderr)
             raise
-
-
-if __name__ == '__main__':
-    reader = Movielens(version='100K', use_local=True, force_rebuild=False, implicit=True, save_local=True, verbose=True)
-    URM_train = reader.get_URM_train()
-    URM_test = reader.get_URM_test()
-    URM_valid = reader.get_URM_validation()
-    print(URM_train.shape)
-    print(URM_test.shape)
-    print(URM_valid.shape)
-    # reader.describe()
-
-    # for train, test in reader.get_CV_folds(verbose=False):
-    #     print(train.nnz)
-    #     print(test.nnz)

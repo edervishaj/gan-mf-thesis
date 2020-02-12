@@ -18,12 +18,15 @@ class CiaoDVD(DataReader):
     matrices URM_train, URM_validation, URM_test or create cross-validation folds from
     the full URM.
     """
+    
+    DATASET_NAME = 'CiaoDVD'
+
 
     url = 'https://www.librec.net/datasets/CiaoDVD.zip'
     dataset_dir = 'CiaoDVD'
     data_file = 'movie-ratings.txt'
 
-    def __init__(self, **kwargs):
+    def __init__(self, split=True, **kwargs):
 
         """
         Constructor
@@ -34,23 +37,5 @@ class CiaoDVD(DataReader):
             Keyword arguments that go into the constructor of the superclass constructor
         """
 
-        super(CiaoDVD, self).__init__(**kwargs)
-        self.process()
-
-
-if __name__ == '__main__':
-    reader = CiaoDVD(use_local=True, force_rebuild=True, implicit=True, save_local=True, verbose=True, min_ratings=1, remove_top_pop=0.1)
-    URM_train = reader.get_URM_train()
-    URM_test = reader.get_URM_test()
-    URM_valid = reader.get_URM_validation()
-    # print(URM_train.nnz)
-    # print(URM_test.nnz)
-    # print(URM_valid.nnz)
-    print(URM_train.shape)
-    print(URM_test.shape)
-    print(URM_valid.shape)
-    reader.describe()
-
-    # for train, test in reader.get_CV_folds(verbose=False):
-    #     print(train.nnz)
-    #     print(test.nnz)
+        super(CiaoDVD, self).__init__(**kwargs, use_cols={'user_id':0, 'item_id':1, 'rating':4})
+        self.process(split)
