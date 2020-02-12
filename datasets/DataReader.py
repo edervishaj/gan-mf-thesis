@@ -46,6 +46,7 @@ class DataReader(object):
                  force_rebuild=False,
                  save_local=True,
                  min_ratings=1,
+                 duplicate='first',
                  verbose=True,
                  seed=1234
                  ):
@@ -70,6 +71,7 @@ class DataReader(object):
         self.header = header
         self.delimiter = delim
         self.remove_top_pop = remove_top_pop
+        self.duplicate = duplicate
 
         if len(use_cols) < 3:
             self.implicit = True
@@ -85,11 +87,12 @@ class DataReader(object):
             'delim': self.delimiter,
             'implicit': self.implicit,
             'remove_top_pop': self.remove_top_pop,
+            'duplicate': self.duplicate,
             'seed': seed
         }
 
 
-    def build_local(self, ratings_file):
+    def build_local(self, ratings_file, split=True):
         """
         Builds sparse matrices from ratings file
 
@@ -97,17 +100,21 @@ class DataReader(object):
         ----------
         ratings_file: str
             The full path to the ratings' file
-
+        
+        split: boolean, default True
+            Flag indicating whether to build only the full URM or also to split it in train-validation-test
         """
         if os.path.isfile(ratings_file):
             self.URM = self.build_URM(file=ratings_file, use_cols=self.use_cols, delimiter=self.delimiter,
-                                      header=self.header, save_local=self.save_local, implicit=self.implicit,
-                                      remove_top_pop=self.remove_top_pop, verbose=self.verbose)
-            self.URM_train, \
-            self.URM_test, \
-            self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio, save_local=self.save_local,
-                                                 min_ratings=self.min_ratings, verbose=self.verbose,
-                                                 save_dir=os.path.dirname(ratings_file))
+                                      header=self.header, save_local=self.save_local, remove_top_pop=self.remove_top_pop,
+                                      duplicate=self.duplicate, verbose=self.verbose)
+            
+            if split:
+                self.URM_train, \
+                self.URM_test, \
+                self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio, save_local=self.save_local,
+                                                    min_ratings=self.min_ratings, verbose=self.verbose, implicit=self.implicit,
+                                                    save_dir=os.path.dirname(ratings_file))
 
             try:
                 with open(os.path.join(os.path.dirname(ratings_file), 'config.pkl'), 'wb') as f:
@@ -137,20 +144,21 @@ class DataReader(object):
             raise
 
     
-    def build_remote(self):
+    def build_remote(self, split=True):
         """
         Builds sparse matrices
         """
         self.get_ratings_file()
         self.URM = self.build_URM(file=self.ratings_file, use_cols=self.use_cols, delimiter=self.delimiter,
-                                    header=self.header, save_local=self.save_local, implicit=self.implicit,
-                                    remove_top_pop=self.remove_top_pop, verbose=self.verbose)
+                                    header=self.header, save_local=self.save_local, remove_top_pop=self.remove_top_pop,
+                                    duplicate=self.duplicate, verbose=self.verbose)
 
-        self.URM_train, \
-        self.URM_test, \
-        self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio, save_local=self.save_local,
-                                                min_ratings=self.min_ratings, verbose=self.verbose,
-                                                save_dir=os.path.dirname(self.ratings_file))
+        if split:
+            self.URM_train, \
+            self.URM_test, \
+            self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio, save_local=self.save_local,
+                                                    min_ratings=self.min_ratings, verbose=self.verbose, implicit=self.implicit,
+                                                    save_dir=os.path.dirname(self.ratings_file))
 
         try:
             with open(os.path.join(os.path.dirname(self.ratings_file), 'config.pkl'), 'wb') as f:
@@ -275,6 +283,7 @@ class DataReader(object):
                           use_cols={'user_id': 0, 'item_id': 1, 'rating': 2},
                           delimiter=',',
                           header=False,
+                          duplicate='first',
                           verbose=True):
         """
         Reads the interactions data file and fills the rows, columns and data arrays
@@ -291,7 +300,10 @@ class DataReader(object):
             Delimiter of the file.
 
         header: boolean, default False
-            Flag indicating whether ratings' file has a header.
+            Flag indicating whether interactions' file has a header.
+
+        duplicate: str [`first`, `last`], default `first`
+            In case of duplicate interactions, keep only the first/last one.
         
         Returns:
         --------
@@ -303,6 +315,8 @@ class DataReader(object):
         rows = array.array('I')
         cols = array.array('I')
         data = array.array('f')
+
+        unique_interactions = {}
 
         with open(file, 'r') as f:
 
@@ -329,12 +343,43 @@ class DataReader(object):
             #             cols.append(current_item_id)
 
             # else:
-            for line in f:
-                row_data = line.split(delimiter)
-                rows.append(int(row_data[use_cols['user_id']]))
-                cols.append(int(row_data[use_cols['item_id']]))
-                data.append(float(row_data[use_cols['rating']]))
+            if self.implicit:
+                for i, line in enumerate(f):
+                    row_data = line.split(delimiter)
+                    r = int(row_data[use_cols['user_id']])
+                    c = int(row_data[use_cols['item_id']])
 
+                    key = str(r) + '_' + str(c)
+                    if unique_interactions.get(key, False):
+                        continue
+                    else:
+                        unique_interactions[key] = i
+
+                    rows.append(r)
+                    cols.append(c)
+                    data.append(1.0)
+                    
+            else:
+                for i, line in enumerate(f):
+                    row_data = line.split(delimiter)
+                    r = int(row_data[use_cols['user_id']])
+                    c = int(row_data[use_cols['item_id']])
+                    d = float(row_data[use_cols['rating']])
+
+                    key = str(r) + '_' + str(c)
+                    idx = unique_interactions.get(key, False)
+                    if idx:
+                        if duplicate == 'last':
+                            data[idx] = d
+                        continue
+                    else:
+                        unique_interactions[key] = i
+
+                    rows.append(r)
+                    cols.append(c)
+                    data.append(d)
+
+        del unique_interactions
         return rows, cols, data
     
     
@@ -344,8 +389,8 @@ class DataReader(object):
                   delimiter=',',
                   header=False,
                   save_local=True,
-                  implicit=False,
                   remove_top_pop=0.0,
+                  duplicate='first',
                   verbose=True):
         """
         Builds the URM from interactions data file.
@@ -362,16 +407,16 @@ class DataReader(object):
             Delimiter of the file.
 
         header: boolean, default False
-            Flag indicating whether ratings' file has a header.
+            Flag indicating whether interactions' file has a header.
 
         save_local: boolean, default True
             Flag indicating whether the URM should be saved locally.
 
-        implicit: boolean, default False
-            Flag indicating whether the ratings should be implicit. If True the column of ratings is substituted with ones.
-
         remove_top_pop: float, default 0.0
             Fraction of most popular items to be removed from the final URM.
+
+        duplicate: str [`first`, `last`], default `first`
+            In case of duplicate interactions, keep only the first/last one.
 
         verbose: boolean, default True
             Flag indicating whether logging should be printed out.
@@ -383,10 +428,7 @@ class DataReader(object):
             The full URM in COO format.
         """
 
-        rows, cols, data = self.read_interactions(file, use_cols, delimiter, header, verbose)
-
-        if implicit:
-            data = np.ones(len(data))
+        rows, cols, data = self.read_interactions(file, use_cols, delimiter, header, duplicate, verbose)
 
         unique_items, item_counts = np.unique(cols, return_counts=True)
 
@@ -428,7 +470,7 @@ class DataReader(object):
         return self.URM
     
     
-    def split_urm(self, URM=None, split_ratio=[0.6, 0.2, 0.2], save_local=True, min_ratings=1, verbose=True, save_dir=None):
+    def split_urm(self, URM=None, split_ratio=[0.6, 0.2, 0.2], save_local=True, implicit=False, min_ratings=1, verbose=True, save_dir=None):
         """
         Creates sparse matrices from full URM.
 
@@ -442,6 +484,9 @@ class DataReader(object):
 
         save_local: boolean, default True
             Flag indicating whether to save the resulting sparse matrices locally.
+
+        implicit: boolean, default False
+            Flag indicating whether the interactions should be implicit. If True the column of interactions is substituted with ones.
 
         min_ratings: int, default 1
             Number of ratings that each user must have in order to be included in any of the splits.
@@ -473,7 +518,10 @@ class DataReader(object):
                 print('URM is not initialized in ' + self.__class__.__name__ + '!', file=sys.stderr)
                 raise
 
-        if min_ratings != 1: #TODO: this should be bypassed if self.implicit == True
+        if implicit:
+            URM.data = np.ones(len(URM.data))
+
+        if min_ratings != 1:
             if verbose:
                 print('Removing ratings of users with less than ' + min_ratings + ' ratings...')
 
@@ -489,6 +537,7 @@ class DataReader(object):
             print('Splitting the full URM into train, test and validation matrices...')
 
         choice = np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=len(URM.data))
+        #TODO: Keep the `split_ratio` per user and not per total ratings
 
         shape = URM.shape
         URM_train = sps.coo_matrix((URM.data[choice == 'train'], (URM.row[choice == 'train'], URM.col[choice == 'train'])), shape=shape, dtype=np.float32)
@@ -580,7 +629,7 @@ class DataReader(object):
             raise
 
 
-    def process(self):
+    def process(self, split=True):
         """
         Read prebuild sparse matrices or generate them from ratings file.
         """
@@ -635,69 +684,88 @@ class DataReader(object):
 
                     self.URM = sps.load_npz(urm_path)
 
-                    self.URM_train, \
-                    self.URM_test, \
-                    self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio,
-                                                         save_local=self.save_local, min_ratings=self.min_ratings,
-                                                         verbose=self.verbose, save_dir=os.path.dirname(urm_path))
+                    if split:
+                        self.URM_train, \
+                        self.URM_test, \
+                        self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio,
+                                                            save_local=self.save_local, min_ratings=self.min_ratings,
+                                                            verbose=self.verbose, save_dir=os.path.dirname(urm_path))
                 else:
                     if self.verbose:
                         print("Matrices not found. Building from ratings' file...")
 
                     if os.path.exists(ratings_file):
-                        self.build_local(ratings_file)
+                        self.build_local(ratings_file, split)
                     else:
-                        self.build_remote()
+                        self.build_remote(split)
 
             else:
                 if self.verbose:
                     print("Rebuilding asked. Building from ratings' file...")
 
                 if os.path.exists(ratings_file):
-                    self.build_local(ratings_file)
+                    self.build_local(ratings_file, split)
                 else:
-                    self.build_remote()
+                    self.build_remote(split)
 
         # Either remote building asked or ratings' file is missing
         else:
-            self.build_remote()
+            self.build_remote(split)
 
 
-    def describe(self, save_plots=False):
+    def describe(self, save_plots=False, path=None):
         """
         Describes the full URM
         """
 
+        print('Dataset:', self.DATASET_NAME)
+
         try:
             # The URM is assumed to have shape users x items
+            # We change the data to implicit to count the number of interactions
+            explicit_data = self.URM.data
+            self.URM.data = np.ones(len(self.URM.data))
             no_users = self.URM.shape[0]
             no_items = self.URM.shape[1]
             ratings = self.URM.nnz
             density = ratings / no_users / no_items
             items_per_user = self.URM.sum(axis=1).A1
+            profile_length_95th = items_per_user[items_per_user <= np.percentile(items_per_user, 95)]
             users_per_item = self.URM.sum(axis=0).A1
             cold_start_users = int(np.sum(np.where(items_per_user == 0)))
-            mean_item_per_user = int(np.round(np.mean(items_per_user)))
+            mean_item_per_user = np.mean(items_per_user)
             min_item_per_user = int(np.min(items_per_user))
             max_item_per_user = int(np.max(items_per_user))
+            unique_ratings = np.unique(explicit_data)
 
             print('Users: {:d}\nItems: {:d}\nRatings: {:d}\nDensity: {:.5f}%\nCold start users: {:d}\n'
-                    'Minimum items per user: {:d}\nMaximum items per user: {:d}\nAvg.items per user: {:d}'
-                  .format(no_users, no_items, ratings, density*100, cold_start_users, min_item_per_user, max_item_per_user, mean_item_per_user))
+                    'Minimum items per user: {:d}\nMaximum items per user: {:d}\nAvg.items per user: {:.2f}\n'
+                    'Unique ratings:{}\n'
+                  .format(no_users, no_items, ratings, density*100, cold_start_users,
+                        min_item_per_user, max_item_per_user, mean_item_per_user, unique_ratings))
 
             sns.set_style('darkgrid')
+            sns.set_context('paper', font_scale=1.75)
 
-            fig1, ax1 = plt.subplots()
-            sns.distplot(items_per_user, rug=False, kde=False, label='count_users', axlabel='interactions', ax=ax1)
-            ax1.set_ylabel('count_users')
+            fig1, ax1 = plt.subplots(figsize=(10, 10))
+            ax1 = sns.distplot(items_per_user, rug=False, kde=False, label='Distribution of per-user number of interactions', ax=ax1)
+            ax1.set_ylabel('users', fontsize=20)
+            ax1.set_xlabel('no. interactions per user', fontsize=20)
 
-            fig2, ax2 = plt.subplots()
-            sns.distplot(users_per_item, rug=False, kde=False, label='count_items', axlabel='interactions', ax=ax2)
-            ax2.set_ylabel('count_items')
+            fig3, ax3 = plt.subplots(figsize=(10, 10))
+            ax3 = sns.distplot(profile_length_95th, rug=False, kde=False, label='Distribution of 95th percentile per-user number of interactions', ax=ax3)
+            ax3.set_ylabel('users', fontsize=20)
+            ax3.set_xlabel('no. interactions per user', fontsize=20)
+
+            # fig2, ax2 = plt.subplots(figsize=(10, 10))
+            # sns.distplot(users_per_item, rug=False, kde=False, label='count_items', axlabel='interactions', ax=ax2)
+            # ax2.set_ylabel('items')
+            # ax2.set_xlabel('no. interactions per item')
 
             if save_plots:
-                fig1.savefig(os.path.join(self.matrices_path, 'user_interaction_distr.png'), bbox_inches="tight")
-                fig2.savefig(os.path.join(self.matrices_path, 'item_interaction_distr.png'), bbox_inches="tight")
+                fig1.savefig(os.path.join(path if path is not None else self.matrices_path, self.DATASET_NAME + '_user_interaction_distr.png'), bbox_inches="tight")
+                fig3.savefig(os.path.join(path if path is not None else self.matrices_path, self.DATASET_NAME + '_95th_interaction_distr.png'), bbox_inches="tight")
+                # fig2.savefig(os.path.join(path if path is not None else self.matrices_path, self.DATASET_NAME + '_item_interaction_distr.png'), bbox_inches="tight")
             else:
                 plt.show()
         except AttributeError:
