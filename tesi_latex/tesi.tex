@@ -1,15 +1,18 @@
 \documentclass[11pt,a4paper,twoside,openright]{report}
 
 \usepackage[]{graphicx}
+\usepackage{svg}
 \usepackage{tabularx}
-\usepackage{subfigure}
+\usepackage{subcaption}
 \usepackage{afterpage}
-\usepackage{amsmath,amssymb}            
+\usepackage{amsmath,amssymb}
+
+% Expectation symbol
+\DeclareMathOperator{\E}{\mathbb{E}}
+
 \usepackage{rotating}  
 \usepackage{fancyhdr}  
-\usepackage[scriptsize]{caption} 
-\hyphenation{a-gen-tiz-za-zio-ne}
-
+\usepackage{caption}
 % \setlength{\paperwidth}{16cm}
 % \setlength{\paperheight}{24cm}
 \setlength{\oddsidemargin} {2. cm}
@@ -17,10 +20,14 @@
 \addtolength{\oddsidemargin} {-0.4 cm}
 \addtolength{\evensidemargin} {-0.4 cm}
 \linespread{1.1}
-
+% \setlength\parskip{1\baselineskip}
 \usepackage[english]{babel}
 \usepackage[latin1]{inputenc}
+% \usepackage{natbib}
+% \bibliographystyle{abbrvnat}
 \renewcommand{\captionfont}{\normalfont \sffamily \itshape \small}
+
+
 
 \pagestyle{empty}
 
@@ -43,6 +50,8 @@
 \renewcommand{\headrulewidth}{0.3pt} 
 
 \pagenumbering{arabic}
+\include{introduction}
+\include{model}
 \include{datasets}
 \include{capitolo1}
 \include{capitolo2}
@@ -56,7 +65,7 @@
 % ---- Bibliography ----
 \addcontentsline{toc}{chapter}{Bibliografia}
 \bibliographystyle{plain}
-\bibliography{bibl_tesi}
+\bibliography{bib_tesi}
 %\nocite{*}
 
 \appendix
