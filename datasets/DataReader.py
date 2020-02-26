@@ -87,6 +87,7 @@ class DataReader(object):
             'delim': self.delimiter,
             'implicit': self.implicit,
             'remove_top_pop': self.remove_top_pop,
+            'min_ratings': self.min_ratings,
             'duplicate': self.duplicate,
             'seed': seed
         }
@@ -521,24 +522,36 @@ class DataReader(object):
         if implicit:
             URM.data = np.ones(len(URM.data))
 
+        URM_csr = sps.csr_matrix(URM)
+
         if min_ratings != 1:
             if verbose:
-                print('Removing ratings of users with less than ' + min_ratings + ' ratings...')
+                print('Removing users with less than ' + str(min_ratings) + ' ratings...')
 
-            URM_csr = sps.csr_matrix(URM)
-            user_mask = (URM_csr.sum(axis=1).A1 < min_ratings).nonzero()[0]
-            URM = sps.lil_matrix(URM_csr)
-            URM[user_mask,:] = 0.0
-            URM = URM.tocsr()
-            URM.eliminate_zeros()
-            URM = URM.tocoo()
+            URM_csr.data = np.ones(len(URM_csr.data))
+            user_mask = np.ediff1d(URM_csr.indptr) >= 2
+            URM_csr = URM_csr[user_mask]
 
         if verbose:
             print('Splitting the full URM into train, test and validation matrices...')
 
-        choice = np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=len(URM.data))
-        #TODO: Keep the `split_ratio` per user and not per total ratings
+        # choice = np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=len(URM.data))
 
+        #TODO: Keep the `split_ratio` per user and not per total ratings.
+        # Doing this through iteration, need to find a better solution
+        choice = []
+        for u in range(URM_csr.shape[0]):
+            indices = URM_csr.indices[URM_csr.indptr[u]: URM_csr.indptr[u+1]]
+            no_interactions = len(indices)
+            if no_interactions == 2:
+                choice.extend(['train', 'test'])
+            else:
+                choice.extend(np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=no_interactions).tolist())
+
+        URM = sps.coo_matrix(URM_csr)
+        del URM_csr
+
+        choice = np.array(choice)
         shape = URM.shape
         URM_train = sps.coo_matrix((URM.data[choice == 'train'], (URM.row[choice == 'train'], URM.col[choice == 'train'])), shape=shape, dtype=np.float32)
         URM_test = sps.coo_matrix((URM.data[choice == 'test'], (URM.row[choice == 'test'], URM.col[choice == 'test'])), shape=shape, dtype=np.float32)
@@ -682,14 +695,23 @@ class DataReader(object):
                     if self.verbose:
                         print('Building from full URM...')
 
-                    self.URM = sps.load_npz(urm_path)
+                    if os.path.isfile(urm_path):
+                        self.URM = sps.load_npz(urm_path)
 
-                    if split:
-                        self.URM_train, \
-                        self.URM_test, \
-                        self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio,
-                                                            save_local=self.save_local, min_ratings=self.min_ratings,
-                                                            verbose=self.verbose, save_dir=os.path.dirname(urm_path))
+                        if split:
+                            self.URM_train, \
+                            self.URM_test, \
+                            self.URM_validation = self.split_urm(self.URM, split_ratio=self.split_ratio,
+                                                                save_local=self.save_local, min_ratings=self.min_ratings,
+                                                                verbose=self.verbose, save_dir=os.path.dirname(urm_path))
+                    else:
+                        if self.verbose:
+                            print("Full URM not found. Building from ratings' file...")
+                            
+                        if os.path.exists(ratings_file):
+                            self.build_local(ratings_file, split)
+                        else:
+                            self.build_remote(split)    
                 else:
                     if self.verbose:
                         print("Matrices not found. Building from ratings' file...")
