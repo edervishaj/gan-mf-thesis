@@ -9,7 +9,7 @@
 
 import os
 import sys
-import json
+import math
 import array
 import pickle
 import zipfile
@@ -18,10 +18,8 @@ import subprocess
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-import scipy.sparse as sps
-from Utils_ import CONSTANTS
-
 import seaborn as sns
+import scipy.sparse as sps
 import matplotlib.pyplot as plt
 
 class DataReader(object):
@@ -471,7 +469,7 @@ class DataReader(object):
         return self.URM
     
     
-    def split_urm(self, URM=None, split_ratio=[0.6, 0.2, 0.2], save_local=True, implicit=False, min_ratings=1, verbose=True, save_dir=None):
+    def split_urm(self, URM=None, split_ratio=[0.6, 0.2, 0.2], save_local=True, implicit=False, min_ratings=2, verbose=True, save_dir=None):
         """
         Creates sparse matrices from full URM.
 
@@ -480,7 +478,7 @@ class DataReader(object):
         URM: scipy.sparse.coo_matrix
             The full URM in COO format.
 
-        split_ratio: array-like, default [0.6, 0.2, 0.2]
+        split_ratio: array-like, default [0.6, 0.2, 0.2] meaning 0.6 train, 0.2 test, 0.2 validation
             Train-Test-Validation split ratio. Must sum to 1.
 
         save_local: boolean, default True
@@ -489,7 +487,7 @@ class DataReader(object):
         implicit: boolean, default False
             Flag indicating whether the interactions should be implicit. If True the column of interactions is substituted with ones.
 
-        min_ratings: int, default 1
+        min_ratings: int, default 2 (one for the train set, the other for the test set)
             Number of ratings that each user must have in order to be included in any of the splits.
 
         verbose: boolean, default True
@@ -497,6 +495,9 @@ class DataReader(object):
 
         save_dir: str, default None
             Directory where to save the sparse matrices.
+
+        save_names: list, default None
+            List of the filenames of the resulting sparse matrices if save_local is True.
 
 
         Returns
@@ -524,12 +525,12 @@ class DataReader(object):
 
         URM_csr = sps.csr_matrix(URM)
 
-        if min_ratings != 1:
+        if min_ratings >= 2:
             if verbose:
                 print('Removing users with less than ' + str(min_ratings) + ' ratings...')
 
             URM_csr.data = np.ones(len(URM_csr.data))
-            user_mask = np.ediff1d(URM_csr.indptr) >= 2
+            user_mask = np.ediff1d(URM_csr.indptr) >= min_ratings
             URM_csr = URM_csr[user_mask]
 
         if verbose:
@@ -537,16 +538,41 @@ class DataReader(object):
 
         # choice = np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=len(URM.data))
 
-        #TODO: Keep the `split_ratio` per user and not per total ratings.
+        # Keep the `split_ratio` per user and not per total ratings.
         # Doing this through iteration, need to find a better solution
         choice = []
         for u in range(URM_csr.shape[0]):
             indices = URM_csr.indices[URM_csr.indptr[u]: URM_csr.indptr[u+1]]
             no_interactions = len(indices)
-            if no_interactions == 2:
-                choice.extend(['train', 'test'])
+            if no_interactions == 1:
+                choice.extend(['train'])
+            elif no_interactions == 2:
+                if split_ratio[1] == 0:
+                    first_choice = ['train', 'validation'][np.random.randint(2)]
+                    second_choice = 'train' if first_choice == 'validation' else 'validation'
+                else:
+                    first_choice = ['train', 'test'][np.random.randint(2)]
+                    second_choice = 'train' if first_choice == 'test' else 'test'
+                choice.extend([first_choice, second_choice])
             else:
-                choice.extend(np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=no_interactions).tolist())
+                selection = np.random.choice(['train', 'test', 'valid'], p=split_ratio, size=no_interactions)
+
+                if (selection == 'train').sum() == 0 or \
+                    (split_ratio[1] != 0 and (selection == 'test').sum() == 0) or \
+                    (split_ratio[2] != 0 and (selection == 'validation').sum() == 0):
+                    no_trains = int(no_interactions * split_ratio[0])
+                    no_tests = math.ceil(no_interactions * split_ratio[1])
+
+                    selection = np.array(['train'] * no_interactions)
+                    possibilities = np.array(range(no_interactions))
+                    select_trains = np.random.choice(possibilities, size=no_trains, replace=False)
+                    remaining_possibilities = list(set(possibilities).difference(set(select_trains)))
+                    select_tests = np.random.choice(remaining_possibilities, size=no_tests, replace=False)
+                    select_validation = list(set(remaining_possibilities).difference(set(select_tests)))
+                    selection[select_tests] = 'test'
+                    selection[select_validation] = 'validation'
+
+                choice.extend(selection.tolist())
 
         URM = sps.coo_matrix(URM_csr)
         del URM_csr
