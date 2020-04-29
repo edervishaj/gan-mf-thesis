@@ -60,6 +60,9 @@ class Movielens(DataReader):
         version: str, default `10M`
             The Movielens dataset version to use. Accepted options are `100K`, `1M`, `10M`, `20M`, `small` and `latest`.
 
+        split: bool, default True
+            Flag that indicates whether to split the full URM into train, test and validation URMs
+
         kwargs: dict
             Keyword arguments that go into the constructor of the superclass constructor
         """
@@ -90,7 +93,7 @@ class Movielens(DataReader):
 
         try:
             url = self.urls[self.version]
-            zip_file = self.download_url(url, self.verbose, desc='Downloading Movielens from ')
+            zip_file = self.download_url(url, self.verbose)
             zfile = zipfile.ZipFile(zip_file)
             to_extract = self.data_files[self.version]
             self.ratings_file = zfile.extract(to_extract, self.all_datasets_dir)

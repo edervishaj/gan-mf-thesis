@@ -128,19 +128,24 @@ class DataReader(object):
 
     def get_ratings_file(self):
         """
-        Downloads the dataset
+        Downloads the dataset and sets self.ratings_file. If downlaoded file is a zip file, it extracts it, otherwise
+        it saves a .csv file
         """
-        zip_file = self.download_url(self.url, self.verbose, desc='Downloading ' + self.DATASET_NAME + ' from ')
-        zfile = zipfile.ZipFile(zip_file)
-        try:
-            self.ratings_file = zfile.extract(self.data_file,
-                                os.path.join(self.all_datasets_dir, os.path.dirname(zip_file)))
-            # Archive will be deleted
-            os.remove(zip_file)
-        except (FileNotFoundError, zipfile.BadZipFile):
-            print('Either file ' + self.data_file + ' not found or ' + os.path.split(self.url)[-1] + ' is corrupted',
-                  file=sys.stderr)
-            raise
+        downloaded_file = self.download_url(self.url, verbose=self.verbose)
+        extension = os.path.splitext(downloaded_file)[1]
+        if extension == '.zip':
+            zfile = zipfile.ZipFile(downloaded_file)
+            try:
+                self.ratings_file = zfile.extract(self.data_file,
+                                    os.path.join(self.all_datasets_dir, os.path.dirname(downloaded_file)))
+                # Archive will be deleted
+                os.remove(downloaded_file)
+            except (FileNotFoundError, zipfile.BadZipFile):
+                print('Either file ' + self.data_file + ' not found or ' + os.path.split(self.url)[-1] + ' is corrupted',
+                      file=sys.stderr)
+                raise
+        elif extension == '.csv':
+            self.ratings_file = downloaded_file
 
     
     def build_remote(self, split=True):
@@ -167,7 +172,7 @@ class DataReader(object):
             raise
 
 
-    def download_url(self, url, verbose=True, desc=''):
+    def download_url(self, url, verbose=True):
         """
         Downloads the file found at url.
         To be used to download datasets which are then saved in self.datasets_dir
@@ -198,7 +203,8 @@ class DataReader(object):
             abs_path = os.path.join(self.all_datasets_dir,  self.dataset_dir, filename)
             os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
-            pbar = tqdm(total=total_size, desc=desc+url, unit='B', unit_scale=True, unit_divisor=1024, disable=not verbose and total_size != 0)
+            desc = 'Downloading ' + self.DATASET_NAME + ' from ' + url
+            pbar = tqdm(total=total_size, desc=desc, unit='B', unit_scale=True, unit_divisor=1024, disable=not verbose and total_size != 0)
 
             with open(abs_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=chunk_size):
@@ -447,8 +453,8 @@ class DataReader(object):
 
         shape = (len(unique_users), len(unique_items))
 
-        self.row_to_user = dict(zip(unique_users, range(0, len(unique_users))))
-        self.col_to_item = dict(zip(unique_items, range(0, len(unique_items))))
+        self.row_to_user = dict(zip(unique_users, range(len(unique_users))))
+        self.col_to_item = dict(zip(unique_items, range(len(unique_items))))
 
         coo_rows = pd.Series(rows).map(self.row_to_user).values
         coo_cols = pd.Series(cols).map(self.col_to_item).values

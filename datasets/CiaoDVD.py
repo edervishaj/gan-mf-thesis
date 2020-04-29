@@ -33,6 +33,9 @@ class CiaoDVD(DataReader):
 
         Parameters
         ----------
+        split: bool, default True
+            Flag that indicates whether to split the full URM into train, test and validation URMs
+
         kwargs:
             Keyword arguments that go into the constructor of the superclass constructor
         """
