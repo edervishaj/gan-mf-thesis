@@ -21,6 +21,64 @@ from sklearn.metrics.pairwise import cosine_similarity
 CONSTANTS = dict(root_dir=os.path.dirname(os.path.abspath(__file__)))
 
 
+class EarlyStoppingScheduler(object):
+    """Performs early stopping mechanism according to a fixed number of worse evaluations on a validation set."""
+    def __init__(self, model, evaluator, metrics=['PRECISION', 'RECALL', 'MAP', 'NDCG'], freq=1, allow_worse=5):
+        """Constructor
+
+        Parameters
+        ----------
+        model: BaseRecommender
+            Implements _compute_item_score() TODO: change the base interface for models
+
+        evaluator: Evaluator
+            Initialized with the validation set.
+
+        metrics: list[str], default ['PRECISION', 'RECALL', 'MAP', 'NDCG']
+            List of metrics present in the evaluator for which early stopping will be evaluated.
+
+        freq: int, default 1
+            Frequency in epochs when to perform evaluation on validation set.
+
+        allow_worse: int, default 5
+            Allowed number of bad results on all metrics.
+        """
+
+        self.model = model
+        self.evaluator = evaluator
+        self.metrics = metrics
+        self.freq = freq
+        self.best_scores = np.zeros(len(metrics))
+        self.allow_worse = allow_worse
+        self.worse_left = allow_worse
+        self.scores = []
+
+    def score(self, epoch):
+        if epoch % self.freq == 0:
+            results_dic, _ = self.evaluator.evaluateRecommender(self.model) #TODO: dependent on recommender interface
+            curr_scores = np.array([results_dic[5][m] for m in self.metrics])
+            self.scores.append(curr_scores)
+            if np.all(np.less_equal(curr_scores, self.best_scores)):
+                if self.worse_left > 0:
+                    self.worse_left -= 1
+                else:
+                    self.model.stop_fit()
+                    self.model.load_model()
+            else:
+                self.best_scores = curr_scores
+                self.worse_left = self.allow_worse
+                self.model.save_current_model()
+
+    def __call__(self, epoch):
+        self.score(epoch)
+
+    def load_best(self):
+        self.model.load_model()
+
+    def get_scores(self):
+        return self.scores
+
+
 def cos_sim(list_vec1, list_vec2):
     """ Element-wise cosine similarity between two lists of vectors """
     sim = np.array([])
@@ -86,7 +144,7 @@ def plot_loss_acc(model, dict_values, xlabel='epochs', ylabel=None, scale='linea
 
     plt.title(title)
     
-    save_path = os.path.join(model.logsdir, 'loss' + '_epochs_' + str(epochs) + '_' + str(model.seed) + '.png')
+    save_path = os.path.join(model.logsdir, 'loss' + '_epochs_' + str(epochs) + '.png')
     fig.savefig(save_path, bbox_inches="tight")
 
 
@@ -109,9 +167,9 @@ def plot_generator_ratings(ratings, rec, neg=False):
     sns.relplot(x='epoch', y='rating', data=data, ci='sd', kind='line', ax=ax)
 
     if neg:
-        save_path = os.path.join(rec.logsdir, 'fake_ratings_neg' + str(rec.seed) + '.png')
+        save_path = os.path.join(rec.logsdir, 'fake_ratings_neg.png')
     else:
-        save_path = os.path.join(rec.logsdir, 'fake_ratings_' + str(rec.seed) + '.png')
+        save_path = os.path.join(rec.logsdir, 'fake_ratings.png')
     fig.savefig(save_path, bbox_inches="tight")
 
 
