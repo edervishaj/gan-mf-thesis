@@ -7,6 +7,7 @@
 '''
 
 import os
+import itertools
 import matplotlib
 import numpy as np
 import seaborn as sns
@@ -46,6 +47,8 @@ def plot_lorenz_curve(datasets, labels, path=None):
     ax.set_xlabel('Percentage of items', fontsize=20)
     ax.set_ylabel('Cumulative percentage of ratings', fontsize=20)
 
+    marker = itertools.cycle(['o', '^', 's', 'p', '1', 'D', 'P', '*'])
+
     for i, d in enumerate(datasets):
         # Compute the number of interactions for each item
         item_ratings = np.ediff1d(d.indptr)
@@ -54,16 +57,16 @@ def plot_lorenz_curve(datasets, labels, path=None):
         sorted_ratings = np.sort(item_ratings)[::-1]
 
         # Cummulative sum of normalized interactions so we can plot them as probability
-        cummulative_ratings = np.cumsum(sorted_ratings) / np.sum(sorted_ratings)
+        cumulative_ratings = np.cumsum(sorted_ratings) / np.sum(sorted_ratings)
 
         # Cummulative sum of items so we can plot them as probability
-        cummulative_items = np.cumsum(np.ones(d.shape[0])) / d.shape[0]
+        cumulative_items = np.cumsum(np.ones(d.shape[0])) / d.shape[0]
 
         # Add Lorenz curve plot
-        ax.plot(cummulative_items, cummulative_ratings, label=labels[i], linewidth=2)
+        ax.plot(cumulative_items, cumulative_ratings, label=labels[i], linewidth=2, marker=next(marker), markevery=len(cumulative_items)//20, markersize=8)
 
     # Add the 45% line
-    ax.plot(cummulative_items[0:-1:10], cummulative_items[0:-1:10], label='Uniform distribution', linewidth=2, linestyle='dashed')
+    ax.plot(cumulative_items[0:-1:10], cumulative_items[0:-1:10], label='Uniform distribution', linewidth=2, linestyle='dashed')
 
     # Add the vertical line at 33% for short-head items
     ax.plot(np.ones(120) * .33, np.linspace(-0.01, 1.01, num=120), label='short-head threshold', color='black', linewidth=2, linestyle='dashdot')
@@ -96,7 +99,7 @@ def plot_long_tail(dataset, label, path=None):
     ax.set_ylabel('Ratings', fontsize=20)
 
     # Cummulative sum of items so we can plot them as probability
-    cummulative_items = np.cumsum(np.ones(dataset.shape[0])) / dataset.shape[0]
+    cumulative_items = np.cumsum(np.ones(dataset.shape[0])) / dataset.shape[0]
 
     # Compute the number of interactions for each item
     item_ratings = np.ediff1d(dataset.indptr)
@@ -105,8 +108,8 @@ def plot_long_tail(dataset, label, path=None):
     sorted_ratings = np.sort(item_ratings)[::-1]
 
     # PLot long tail and fill
-    ax.fill_between(cummulative_items, sorted_ratings, where=cummulative_items<=.33, alpha=.75, color='red')
-    ax.fill_between(cummulative_items, sorted_ratings, where=cummulative_items>.33, alpha=.75, color=('#f8de73'))
+    ax.fill_between(cumulative_items, sorted_ratings, where=cumulative_items<=.33, alpha=.75, color='red')
+    ax.fill_between(cumulative_items, sorted_ratings, where=cumulative_items>.33, alpha=.75, color=('#f8de73'))
 
     # Add horizontal line of short-head items at 33%
     ax.plot(np.ones(100) * .33, np.linspace(-sorted_ratings[0] * .01, sorted_ratings[0] * 1.01, num=100),
@@ -146,4 +149,4 @@ if __name__ == "__main__":
 
     reader = Movielens('1M', **kwargs)
     plot_long_tail(dataset=reader.get_URM_full().T.tocsr(), label=reader.DATASET_NAME, path=path)
-    plot_lorenz_curve(datasets=URMs, labels=[d if isinstance(d, str) else d.DATASET_NAME for d in datasets], path=path)
+    plot_lorenz_curve(datasets=URMs, labels=['MovieLens ' + d if isinstance(d, str) else d.DATASET_NAME for d in datasets], path=path)
