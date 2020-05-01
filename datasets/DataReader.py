@@ -766,7 +766,6 @@ class DataReader(object):
         else:
             self.build_remote(split)
 
-
     def describe(self, save_plots=False, path=None):
         """
         Describes the full URM
@@ -798,7 +797,8 @@ class DataReader(object):
                   .format(no_users, no_items, ratings, density*100, cold_start_users,
                         min_item_per_user, max_item_per_user, mean_item_per_user, unique_ratings))
 
-            sns.set_style('darkgrid')
+            plt.style.use('fivethirtyeight')
+            # sns.set_style('darkgrid')
             sns.set_context('paper', font_scale=1.75)
 
             fig1, ax1 = plt.subplots(figsize=(10, 10))

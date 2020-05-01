@@ -14,6 +14,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 sns.set_style('darkgrid')
+plt.style.use('fivethirtyeight')
 
 from sklearn.metrics.pairwise import cosine_similarity
 
