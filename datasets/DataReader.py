@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import seaborn as sns
+from Utils_ import gini
 import scipy.sparse as sps
 import matplotlib.pyplot as plt
 
@@ -790,12 +791,13 @@ class DataReader(object):
             min_item_per_user = int(np.min(items_per_user))
             max_item_per_user = int(np.max(items_per_user))
             unique_ratings = np.unique(explicit_data)
+            gini_index = gini(users_per_item)
 
             print('Users: {:d}\nItems: {:d}\nRatings: {:d}\nDensity: {:.5f}%\nCold start users: {:d}\n'
                     'Minimum items per user: {:d}\nMaximum items per user: {:d}\nAvg.items per user: {:.2f}\n'
-                    'Unique ratings:{}\n'
+                    'Gini index: {:.2f}\nUnique ratings:{}\n'
                   .format(no_users, no_items, ratings, density*100, cold_start_users,
-                        min_item_per_user, max_item_per_user, mean_item_per_user, unique_ratings))
+                        min_item_per_user, max_item_per_user, mean_item_per_user, gini_index, unique_ratings))
 
             plt.style.use('fivethirtyeight')
             # sns.set_style('darkgrid')
