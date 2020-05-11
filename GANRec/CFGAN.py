@@ -17,14 +17,12 @@ import tensorflow as tf
 from datetime import datetime
 from Utils_ import EarlyStoppingScheduler
 from Base.BaseRecommender import BaseRecommender
-
-seed = 1337
-
+from GANRec.Cython.cython_utils import get_non_interactions, compute_masks
 
 class CFGAN(BaseRecommender):
     RECOMMENDER_NAME = 'CFGAN'
 
-    def __init__(self, URM_train, mode='user', verbose=False, is_experiment=False):
+    def __init__(self, URM_train, mode='user', seed=1234, verbose=False, is_experiment=False):
 
         self.mode = mode
         if self.mode == 'item':
@@ -33,6 +31,7 @@ class CFGAN(BaseRecommender):
             self.URM_train = URM_train
         self.num_users, self.num_items = self.URM_train.shape
         self.config = None
+        self.seed = seed
         self.verbose = verbose
         self.logsdir = os.path.join('plots', self.RECOMMENDER_NAME, datetime.now().strftime("%Y%m%d-%H%M%S"))
 
@@ -124,7 +123,7 @@ class CFGAN(BaseRecommender):
         # First clear the session to save GPU memory
         tf.reset_default_graph()
         # Set fixed seed for the TF graph
-        tf.set_random_seed(seed)
+        tf.set_random_seed(self.seed)
 
         self.build(d_nodes, d_layers, g_nodes, g_layers, d_hidden_act, g_hidden_act)
 
@@ -192,7 +191,9 @@ class CFGAN(BaseRecommender):
         train_g_loss = []
         train_d_loss = []
 
-        all_users = np.array(range(self.num_users))
+        all_users = np.array(range(self.num_users), dtype=np.int32)
+
+        not_selected = get_non_interactions(all_users, self.URM_train)
 
         d_step = d_batch_size
         g_step = g_batch_size
@@ -212,20 +213,21 @@ class CFGAN(BaseRecommender):
             batch_g_loss = []
 
             # Sample zero reconstruction and partial masking samples
-            zr_sample_indices = {}
-            pm_sample_indices = {}
-            for u in all_users:
-                if scheme == 'ZP' or scheme == 'ZR':
-                    not_selected = np.nonzero(self.URM_train[u].toarray()[0] == 0)[0]
-                    selected = np.random.choice(not_selected, size=int(len(not_selected) * zr_ratio),
-                                                replace=False)
-                    zr_sample_indices[u] = selected
+            # zr_sample_indices = {}
+            # pm_sample_indices = {}
 
-                if scheme == 'ZP' or scheme == 'PM':
-                    not_selected = np.nonzero(self.URM_train[u].toarray()[0] == 0)[0]
-                    selected = np.random.choice(not_selected, size=int(len(not_selected) * zp_ratio),
-                                                replace=False)
-                    pm_sample_indices[u] = selected
+            # for u in all_users:
+            #     if scheme == 'ZP' or scheme == 'ZR':
+
+            #         selected = np.random.choice(not_selected[u], size=int(len(not_selected[u]) * zr_ratio),
+            #                                     replace=False)
+            #         zr_sample_indices[u] = selected
+
+            #     if scheme == 'ZP' or scheme == 'PM':
+            #         selected = np.random.choice(not_selected[u], size=int(len(not_selected[u]) * zp_ratio),
+            #                                     replace=False)
+            #         pm_sample_indices[u] = selected
+            zr_sample_indices, pm_sample_indices = compute_masks(all_users, not_selected, scheme, zr_ratio, zp_ratio)
 
             for _ in range(d_steps):
                 start_idx = 0

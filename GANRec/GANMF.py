@@ -18,12 +18,10 @@ from datetime import datetime
 from Utils_ import EarlyStoppingScheduler
 from Base.BaseRecommender import BaseRecommender
 
-seed = 1337
-
 class GANMF(BaseRecommender):
     RECOMMENDER_NAME = 'GANMF'
 
-    def __init__(self, URM_train, mode='user', verbose=False, is_experiment=False):
+    def __init__(self, URM_train, mode='user', verbose=False, seed=1234, is_experiment=False):
 
         if mode not in ['user', 'item']:
             raise ValueError('Accepted training modes are `user` and `item`. Given was {}.', mode)
@@ -35,6 +33,7 @@ class GANMF(BaseRecommender):
             self.URM_train = URM_train
         self.num_users, self.num_items = self.URM_train.shape
         self.config = None
+        self.seed = seed
         self.verbose = verbose
         self.logsdir = os.path.join('plots', self.RECOMMENDER_NAME, datetime.now().strftime("%Y%m%d-%H%M%S"))
 
@@ -89,7 +88,7 @@ class GANMF(BaseRecommender):
         # First clear the session to save GPU memory
         tf.reset_default_graph()
         # Set fixed seed for the TF graph
-        tf.set_random_seed(seed)
+        tf.set_random_seed(self.seed)
 
         self.build(num_factors, emb_dim)
 
