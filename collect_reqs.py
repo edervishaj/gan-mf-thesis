@@ -8,16 +8,14 @@
 
 import os
 import re
-import sys
 import glob
 import subprocess
 
 if __name__ == "__main__":
     # Run this script as: `python collect_reqs [conda | pip]`
-    manager = sys.argv[1]
     cwd = os.path.dirname(os.path.abspath(__file__))
     packages = ['scikit-learn', 'scikit-optimize', 'telegram-send'] # special names
-    with open(manager + '_requirements.txt', 'w') as f:
+    with open('requirements.txt', 'w') as f:
         # Go over all files ending in *.py and collect only trimmed lines starting with `import` and `from`
         for fname in glob.iglob(cwd + '/**/*.py', recursive=True):
             # Disregard this file
@@ -32,12 +30,7 @@ if __name__ == "__main__":
                             complex_package = tokenized_line[1]
                             # Append the package only
                             packages.append(complex_package.split('.')[0].lower())
-        if manager == 'conda':
-            packages.extend(['cudatoolkit', 'cudnn'])
-            cmd = ['conda', 'list', '--export']
-        elif manager == 'pip':
-            cmd = ['pip', 'freeze']
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE)
         installed_packages = p.stdout.read().decode().lower().split('\n')
         installed_pkg_names = [re.split(r"=+", pkg)[0] for pkg in installed_packages if len(re.split(r"=+", pkg)) > 1]
         output_packages = [pkg for pkg in packages if pkg in installed_pkg_names]
