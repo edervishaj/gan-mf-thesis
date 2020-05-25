@@ -16,8 +16,6 @@ if __name__ == "__main__":
     # Run this script as: `python collect_reqs [conda | pip]`
     manager = sys.argv[1]
     cwd = os.path.dirname(os.path.abspath(__file__))
-    default_packages = set(['os', 'sys', 'itertools', 'operator', 'zipfile', 'pickle', 'subprocess', 'json', 'random', 'array', 'warnings'])
-    not_allowed_packages = [d for d in os.listdir(cwd) if os.path.isdir(d)]
     packages = ['scikit-learn', 'scikit-optimize', 'telegram-send'] # special names
     with open(manager + '_requirements.txt', 'w') as f:
         # Go over all files ending in *.py and collect only trimmed lines starting with `import` and `from`
@@ -34,14 +32,13 @@ if __name__ == "__main__":
                             complex_package = tokenized_line[1]
                             # Append the package only
                             packages.append(complex_package.split('.')[0].lower())
-        packages = set(packages).difference(set(not_allowed_packages)).difference(default_packages)
         if manager == 'conda':
-            packages.union(set(['cudatoolkit', 'cudnn']))
+            packages.extend(['cudatoolkit', 'cudnn'])
             cmd = ['conda', 'list', '--export']
         elif manager == 'pip':
             cmd = ['pip', 'freeze']
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         installed_packages = p.stdout.read().decode().lower().split('\n')
         installed_pkg_names = [re.split(r"=+", pkg)[0] for pkg in installed_packages if len(re.split(r"=+", pkg)) > 1]
-        output_packages = list(packages.intersection(set(installed_pkg_names)))
+        output_packages = [pkg for pkg in packages if pkg in installed_pkg_names]
         f.writelines([pkg + '\n' for pkg in installed_packages if re.split(r"=+", pkg)[0] in output_packages])
