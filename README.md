@@ -81,14 +81,14 @@ python RecSysExp.py --build_datasets
 To run the tuning of a recommender use the following command:
 
 ```shell
-python RecSysExp.py <recommender-name> [--item | --user] [--run_all | <dataset-name>] [--no_mp]
+python RecSysExp.py <recommender-name> [--item | --user] [--run_all | <dataset-name(s)>] [--no_mp]
 ```
 
 * `recommender-name` is a value among: `Random, PureSVD, ALS, BPR, SLIMBPR, CFGAN, GANMF, DisGANMF, DeepGANMF, fullGANMF`.
 
 * `item | user` is a flag used only for GAN-based recommenders. It denotes the item/user based training procedure for the selected recommender.
 
-* `run_all` is a flag that selects all datasets on which to tune the selected recommender. If this flag is selected `dataset-name` is neglected.
+* `run_all` is a flag that selects all datasets on which to tune the selected recommender. If this flag is selected `dataset-name(s)` is neglected.
 
 * `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`.
 
@@ -101,12 +101,12 @@ All results, best hyperparameters and dataset splits are saved into the director
 In order to run the ablation studies use the script in `AblationStudy.py`. This file implements two functions: `ablation_study` and `feature_matching_cos_sim`. In order to run it, modify the very last line with the name of any of the above functions:
 
 ```shell
-python AblationStudy.py [--run-all] <dataset-name> [item | user]
+python AblationStudy.py [--run-all | <dataset-name(s)>] [item | user]
 ```
 
-* `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name` is neglected.
+* `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name(s)` is neglected.
 
-* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`.
+* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
 
 * `item | user` is a flag that sets the training procedure for `GANMF` recommender.
 
@@ -117,13 +117,13 @@ Results for function `ablation_study` are saved in directory `ablation_study` an
 In order to test each tuned recommender on the test set (which is created when tuning the hyperparameters) run the following command:
 
 ```shell
-python RunBestParameters.py <recommender-name> [train-mode] [--run-all] dataset-name
+python RunBestParameters.py <recommender-name> [train-mode] [--run-all | dataset-name(s)]
 ```
 
 * `recommender-name` is a value among: `Random, PureSVD, ALS, BPR, SLIMBPR, CFGAN, GANMF, DisGANMF, DeepGANMF, fullGANMF`.
 
 * `train-mode` is a value among: `item, user`. It specifies the training procedure for GAN-based recommenders. If omitted for GAN-based recommenders both training procedures are run. It is omitted for other baselines.
 
-* `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name` is neglected.
+* `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name(s)` is neglected.
 
-* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`.
+* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
