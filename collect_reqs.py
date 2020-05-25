@@ -33,14 +33,15 @@ if __name__ == "__main__":
                         if tokenized_line[0] in ['import', 'from']:
                             complex_package = tokenized_line[1]
                             # Append the package only
-                            packages.append(complex_package.split('.')[0])
+                            packages.append(complex_package.split('.')[0].lower())
         packages = set(packages).difference(set(not_allowed_packages)).difference(default_packages)
         if manager == 'conda':
+            packages.union(set(['cudatoolkit', 'cudnn']))
             cmd = ['conda', 'list', '--export']
         elif manager == 'pip':
             cmd = ['pip', 'freeze']
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        installed_packages = p.stdout.read().decode().split('\n')
+        installed_packages = p.stdout.read().decode().lower().split('\n')
         installed_pkg_names = [re.split(r"=+", pkg)[0] for pkg in installed_packages if len(re.split(r"=+", pkg)) > 1]
         output_packages = list(packages.intersection(set(installed_pkg_names)))
         f.writelines([pkg + '\n' for pkg in installed_packages if re.split(r"=+", pkg)[0] in output_packages])
