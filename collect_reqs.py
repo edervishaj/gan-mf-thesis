@@ -13,13 +13,12 @@ import glob
 import subprocess
 
 if __name__ == "__main__":
-    # Run this script as: `python collect_reqs [conda | pip]`
-    manager = sys.argv[1]
+    # Run this script as: `python collect_reqs`
     cwd = os.path.dirname(os.path.abspath(__file__))
     default_packages = set(['os', 'sys', 'itertools', 'operator', 'zipfile', 'pickle', 'subprocess', 'json', 'random', 'array', 'warnings'])
     not_allowed_packages = [d for d in os.listdir(cwd) if os.path.isdir(d)]
-    packages = []
-    with open(manager + '_requirements.txt', 'w') as f:
+    packages = ['scikit-learn', 'scikit-optimize', 'telegram-send']
+    with open('requirements.txt', 'w') as f:
         # Go over all files ending in *.py and collect only trimmed lines starting with `import` and `from`
         for fname in glob.iglob(cwd + '/**/*.py', recursive=True):
             # Disregard this file
@@ -35,11 +34,7 @@ if __name__ == "__main__":
                             # Append the package only
                             packages.append(complex_package.split('.')[0])
         packages = set(packages).difference(set(not_allowed_packages)).difference(default_packages)
-        if manager == 'conda':
-            cmd = [manager, 'list', '--export']
-        elif manager == 'pip':
-            cmd = [manager, 'freeze']
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE)
         installed_packages = p.stdout.read().decode().split('\n')
         installed_pkg_names = [re.split(r"=+", pkg)[0] for pkg in installed_packages if len(re.split(r"=+", pkg)) > 1]
         output_packages = list(packages.intersection(set(installed_pkg_names)))
