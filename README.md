@@ -90,7 +90,7 @@ python RecSysExp.py <recommender-name> [--item | --user] [--run_all | <dataset-n
 
 * `run_all` is a flag that selects all datasets on which to tune the selected recommender. If this flag is selected `dataset-name(s)` is neglected.
 
-* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`.
+* `dataset-name(s)` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
 
 * `no_mp` is a flag that explictly requests no parallelism during tuning (each dataset tuned in parallel through Python's `multiprocessing` module). This flag is necessary for GAN-based algorithms running on a GPU in order not to exhaust the available GPU memory by constructing parallel Tensorflow graphs. It can be ommited for other baselines.
 
@@ -106,7 +106,7 @@ python AblationStudy.py [--run-all | <dataset-name(s)>] [item | user]
 
 * `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name(s)` is neglected.
 
-* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
+* `dataset-name(s)` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
 
 * `item | user` is a flag that sets the training procedure for `GANMF` recommender.
 
@@ -126,4 +126,4 @@ python RunBestParameters.py <recommender-name> [train-mode] [--run-all | dataset
 
 * `run-all` is a flag that asks for the computation of the experiment on all datasets. If it is set, `dataset-name(s)` is neglected.
 
-* `dataset-name` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
+* `dataset-name(s)` is a value among: `LastFM, CiaoDVD, Delicious, 100K, 1M`. Multiple values can be set separated by space.
