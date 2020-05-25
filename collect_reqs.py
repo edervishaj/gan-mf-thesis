@@ -7,16 +7,19 @@
 '''
 
 import os
-import pip
+import re
+import sys
 import glob
 import subprocess
 
 if __name__ == "__main__":
+    # Run this script as: `python collect_reqs [conda | pip]`
+    manager = sys.argv[1]
     cwd = os.path.dirname(os.path.abspath(__file__))
-    default_packages = set(['os', 'sys', 'itertools', 'operator', 'zipfile', 'pickle', 'subprocess', 'json', 'random', 'array'])
-    not_allowed_packages = set(['datasets', 'Scripts', 'Utils_'])
+    default_packages = set(['os', 'sys', 'itertools', 'operator', 'zipfile', 'pickle', 'subprocess', 'json', 'random', 'array', 'warnings'])
+    not_allowed_packages = [d for d in os.listdir(cwd) if os.path.isdir(d)]
     packages = []
-    with open('requirements.txt', 'w') as f:
+    with open(manager + '_requirements.txt', 'w') as f:
         # Go over all files ending in *.py and collect only trimmed lines starting with `import` and `from`
         for fname in glob.iglob(cwd + '/**/*.py', recursive=True):
             # Disregard this file
@@ -25,16 +28,19 @@ if __name__ == "__main__":
             with open(fname, 'r') as g:
                 # Read all lines of every files ending in *.py
                 for l in g.readlines():
-                    tokenized_line = l.strip().split(' ')
+                    tokenized_line = re.split(r"\W", l.strip())
                     if len(tokenized_line) > 0:
                         if tokenized_line[0] in ['import', 'from']:
                             complex_package = tokenized_line[1]
                             # Append the package only
                             packages.append(complex_package.split('.')[0])
-        packages = list(set(packages).difference(not_allowed_packages).difference(default_packages))
-        grep_str = (''.join([x + '\|' for x in packages]))[:-2] + '\"'
-        p1 = subprocess.Popen(['pip', 'freeze'], stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(['grep', grep_str], stdin=p1.stdout, stdout=subprocess.PIPE, encoding='ASCII')
-        p1.stdout.close()
-        output = p2.communicate()[0]
-        f.writelines([line + '\n' for line in output.split()])
+        packages = set(packages).difference(set(not_allowed_packages)).difference(default_packages)
+        if manager == 'conda':
+            cmd = [manager, 'list', '--export']
+        elif manager == 'pip':
+            cmd = [manager, 'freeze']
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        installed_packages = p.stdout.read().decode().split('\n')
+        installed_pkg_names = [re.split(r"=+", pkg)[0] for pkg in installed_packages if len(re.split(r"=+", pkg)) > 1]
+        output_packages = list(packages.intersection(set(installed_pkg_names)))
+        f.writelines([pkg + '\n' for pkg in installed_packages if re.split(r"=+", pkg)[0] in output_packages])
