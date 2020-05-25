@@ -18,7 +18,8 @@ logs/
 *.ipynb
 *.pdf
 *.txt
-!requirements.txt
+!pip_requirements.txt
+!conda_requirements.txt
 
 
 
