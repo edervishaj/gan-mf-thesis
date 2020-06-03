@@ -24,7 +24,7 @@ Activate the newly created environment:
 conda activate <name-env>
 ```
 
-### Virtualenv &  Pip
+### Virtualenv & Pip
 First download and install Python 3.6.8 from [python.org](python.org). Then install `virtualenv`:
 
 ```shell
@@ -52,6 +52,15 @@ pip install -r pip_requirements.txt
 Note that if you intend to use a GPU and install required packages using `virtualenv` and `pip` then you need to install separately `cudatoolkit==9.0` and `cudnn==7.1.2` following instructions for your GPU on [nvidia.com](nvidia.com).
 
 ## Code organization
+
+Before running any experiment or algorithm you need to compile the Cython code part of some of the recommenders. 
+You can compile them all with the following command:
+
+```python
+python run_compile_all_cython.py
+```
+
+*N.B* You need to have the following packages installed before compiling: `gcc` and `python3-dev`
 
 ### Running single algorithms
 We have provided python scripts to test-run only the GAN-based algorithms. They can be ran by:
