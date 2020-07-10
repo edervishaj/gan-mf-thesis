@@ -1,4 +1,7 @@
 # GAN-based Matrix Factorization for Recommender Systems
+
+![GANMF Architecture](ganmf.png)
+
 This repository contains the code and experiments for the Master of Science thesis "GAN-based Matrix Factorization for Recommender Systems" at Politecnico di Milano. The abstract is provided below. Full text will be available later at http://hdl.handle.net/10589/154120 or by request to ervin.dervishaj@outlook.com.
 
 ## Abstract
