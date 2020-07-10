@@ -1,6 +1,16 @@
 # GAN-based Matrix Factorization for Recommender Systems
-This repository contains the code and experiments for the Master of Science thesis "GAN-based Matrix Factorization for Recommender Systems" at Politecnico di Milano. You can access the text from politesi.
+This repository contains the code and experiments for the Master of Science thesis "GAN-based Matrix Factorization for Recommender Systems" at Politecnico di Milano. The abstract is provided below. Full text will be available later at http://hdl.handle.net/10589/154120 or by request to ervin.dervishaj@outlook.com.
 
+## Abstract
+The last decade has seen an exponential increase in the amount of available information thanks to the ever-growing number of connected devices and interaction of users with online content like social media, e-commerce, etc. While this translates in more choices for users given their diverse set of preferences, it makes it difficult for them to explore this vast amount of information. Recommender systems (RS) aim to alleviate this problem by filtering the content offered to users by predicting either the rating of items by users or the propensity of users to like specific items. The latter is known as Top-N recommendation in the RS community and it refers to the problem of recommending items to users, preferably in the order from most likely-to-interact to least likely-to-interact.
+
+RS use two main approaches for providing recommendations to users; collaborative filtering and content-based filtering. One of the main algorithms used in collaborative filtering is matrix factorization which constitutes in estimating the user preferences by decomposing a user-item interaction matrix into matrices of lower dimensionality of latent features of users and items.
+
+The burst of big data has triggered a corresponding response in the machine learning community in trying to come up with new techniques to extract relevant information from data. One such technique is Generative Adversarial Nets (GAN) proposed in 2014 by Goodfellow et al. which initiated a fresh interest in generative modelling. Under this modelling paradigm, GANs have shown great results in estimating high-dimensional, degenerate distributions in Computer Vision, Natural Language Processing and various other scientific fields. Despite their popularity and abilities in learning arbitrary distributions, GANs, and more generally generative modelling, have not been widely applied in RS.
+
+In this thesis we investigate a novel approach that estimates the user and item latent factors in a matrix factorization setting through the application of Generative Adversarial Networks for generic Top-N recommendation problem. We detail the formulation of this approach and show its performance through different experiments on well know datasets in the RS community.
+
+## How to use this repo
 In order to run the code and experiments you need first to setup a Python environment. Any environment manager will work but we suggest `conda` since it is easier to recreate our environment if using a GPU. `conda` can help with the installation of `CUDA` and `CUDA toolkit` necessary to utilize available GPU(s). We highly recommend running this repo with a GPU since GAN-based recommenders require long running times.
 
 ### Conda
