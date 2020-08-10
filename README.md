@@ -2,7 +2,7 @@
 
 ![GANMF Architecture](ganmf.png)
 
-This repository contains the code and experiments for the Master of Science thesis "GAN-based Matrix Factorization for Recommender Systems" at Politecnico di Milano. The abstract is provided below. Full text will be available later at http://hdl.handle.net/10589/154120 or by request to [ervin.dervishaj@outlook.com](mailto:ervin.dervishaj@outlook.com).
+This repository contains the code and experiments for the Master of Science thesis "GAN-based Matrix Factorization for Recommender Systems" at Politecnico di Milano. The abstract is provided below. Full text is available at http://hdl.handle.net/10589/154120.
 
 ## Abstract
 The last decade has seen an exponential increase in the amount of available information thanks to the ever-growing number of connected devices and interaction of users with online content like social media, e-commerce, etc. While this translates in more choices for users given their diverse set of preferences, it makes it difficult for them to explore this vast amount of information. Recommender systems (RS) aim to alleviate this problem by filtering the content offered to users by predicting either the rating of items by users or the propensity of users to like specific items. The latter is known as Top-N recommendation in the RS community and it refers to the problem of recommending items to users, preferably in the order from most likely-to-interact to least likely-to-interact.
