@@ -14,7 +14,7 @@ The burst of big data has triggered a corresponding response in the machine lear
 In this thesis we investigate a novel approach that estimates the user and item latent factors in a matrix factorization setting through the application of Generative Adversarial Networks for generic Top-N recommendation problem. We detail the formulation of this approach and show its performance through different experiments on well know datasets in the RS community.
 
 ## How to use this repo
-In order to run the code and experiments you need first to setup a Python environment. Any environment manager will work but we suggest `conda` since it is easier to recreate our environment if using a GPU. `conda` can help with the installation of `CUDA` and `CUDA toolkit` necessary to utilize available GPU(s). We highly recommend running this repo with a GPU since GAN-based recommenders require long running times.
+This repo is based on a version of the repo [Recsys_Course_AT_PoliMi](https://github.com/MaurizioFD/RecSys_Course_AT_PoliMi). In order to run the code and experiments you need first to setup a Python environment. Any environment manager will work but we suggest `conda` since it is easier to recreate our environment if using a GPU. `conda` can help with the installation of `CUDA` and `CUDA toolkit` necessary to utilize available GPU(s). We highly recommend running this repo with a GPU since GAN-based recommenders require long running times.
 
 ### Conda
 Run the following command to create a new environment with `Python 3.6.8` and install all requirements in file `conda_requirements.txt`:
